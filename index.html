@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Tasks">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1a1a1a" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>Task Calendar</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #ffffff;
+    --bg2: #f5f5f5;
+    --bg3: #ebebeb;
+    --text: #1a1a1a;
+    --text2: #666;
+    --text3: #999;
+    --border: rgba(0,0,0,0.1);
+    --border2: rgba(0,0,0,0.2);
+    --purple: #534AB7;
+    --purple-bg: #EEEDFE;
+    --purple-text: #3C3489;
+    --green: #0F6E56;
+    --green-bg: #E1F5EE;
+    --green-text: #085041;
+    --blue: #185FA5;
+    --blue-bg: #E6F1FB;
+    --blue-text: #0C447C;
+    --red: #A32D2D;
+    --red-bg: #FCEBEB;
+    --red-text: #791F1F;
+    --radius: 10px;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bot: env(safe-area-inset-bottom, 0px);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1a1a;
+      --bg2: #242424;
+      --bg3: #2e2e2e;
+      --text: #f0f0f0;
+      --text2: #aaa;
+      --text3: #666;
+      --border: rgba(255,255,255,0.1);
+      --border2: rgba(255,255,255,0.2);
+      --purple-bg: #26215C;
+      --purple-text: #AFA9EC;
+      --green-bg: #04342C;
+      --green-text: #5DCAA5;
+      --blue-bg: #042C53;
+      --blue-text: #85B7EB;
+      --red-bg: #501313;
+      --red-text: #F09595;
+    }
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    overflow: hidden;
+  }
+
+  .app {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding-top: var(--safe-top);
+    padding-bottom: var(--safe-bot);
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px 10px;
+    border-bottom: 0.5px solid var(--border);
+    flex-shrink: 0;
+  }
+  .header-title { font-size: 20px; font-weight: 600; color: var(--text); }
+  .week-nav { display: flex; align-items: center; gap: 6px; }
+  .week-label { font-size: 13px; color: var(--text2); min-width: 90px; text-align: center; }
+  .nav-btn {
+    width: 30px; height: 30px; border-radius: 8px;
+    border: 0.5px solid var(--border2); background: var(--bg2);
+    color: var(--text); font-size: 16px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .nav-btn:active { background: var(--bg3); }
+
+  /* Legend */
+  .legend {
+    display: flex; gap: 10px; padding: 8px 16px;
+    border-bottom: 0.5px solid var(--border);
+    flex-shrink: 0; overflow-x: auto;
+  }
+  .leg { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text2); white-space: nowrap; }
+  .leg-dot { width: 14px; height: 14px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 9px; border: 0.5px solid var(--border); }
+
+  /* Scrollable table area */
+  .table-area { flex: 1; overflow: auto; -webkit-overflow-scrolling: touch; }
+
+  table { border-collapse: collapse; width: 100%; }
+
+  /* Sticky header row */
+  thead th {
+    position: sticky; top: 0; z-index: 10;
+    background: var(--bg2);
+    font-size: 11px; font-weight: 500; color: var(--text2);
+    padding: 8px 4px; text-align: center;
+    border-bottom: 0.5px solid var(--border);
+    white-space: nowrap;
+  }
+  thead th.task-hd { text-align: left; padding-left: 12px; min-width: 110px; position: sticky; left: 0; z-index: 20; }
+
+  /* Sticky first column */
+  tbody td.task-cell {
+    position: sticky; left: 0; z-index: 5;
+    background: var(--bg);
+    border-right: 0.5px solid var(--border);
+    padding: 0;
+    min-width: 110px;
+  }
+  .task-cell-inner {
+    display: flex; align-items: center; gap: 4px;
+    padding: 8px 6px 8px 12px;
+  }
+  .task-name-text { font-size: 13px; font-weight: 500; flex: 1; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .task-name-input {
+    font-size: 13px; font-weight: 500; flex: 1;
+    background: transparent; border: none; color: var(--text);
+    outline: none; width: 100%;
+    border-bottom: 1px solid var(--purple);
+  }
+  .del-btn { background: none; border: none; color: var(--text3); font-size: 14px; cursor: pointer; padding: 2px; flex-shrink: 0; }
+
+  /* Day cells */
+  tbody td.day-cell {
+    padding: 6px 4px; text-align: center;
+    border-bottom: 0.5px solid var(--border);
+  }
+  tbody tr:last-child td { border-bottom: none; }
+
+  td.today-cell { background: var(--blue-bg) !important; }
+  thead th.today-hd { color: var(--blue) !important; }
+
+  .status-btn {
+    width: 34px; height: 34px; border-radius: 8px;
+    border: 0.5px solid var(--border2);
+    background: var(--bg);
+    color: var(--text3);
+    font-size: 16px; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    transition: transform 0.08s;
+  }
+  .status-btn:active { transform: scale(0.9); }
+  .status-btn.done { background: var(--green-bg); border-color: var(--green); color: var(--green); }
+  .status-btn.inprog { background: var(--blue-bg); border-color: var(--blue); color: var(--blue); }
+  .status-btn.blocked { background: var(--red-bg); border-color: var(--red); color: var(--red); }
+
+  /* Add task row */
+  .add-row td {
+    padding: 10px 12px;
+    border-top: 0.5px solid var(--border);
+    position: sticky; left: 0;
+  }
+  .add-form { display: flex; gap: 8px; align-items: center; }
+  .add-input {
+    flex: 1; height: 36px; padding: 0 10px;
+    border: 0.5px solid var(--border2); border-radius: 8px;
+    background: var(--bg2); color: var(--text);
+    font-size: 14px; outline: none;
+  }
+  .add-input:focus { border-color: var(--purple); }
+  .add-btn {
+    height: 36px; padding: 0 14px; border-radius: 8px;
+    border: 0.5px solid var(--purple); background: var(--purple-bg);
+    color: var(--purple-text); font-size: 14px; font-weight: 500; cursor: pointer;
+    white-space: nowrap;
+  }
+  .add-btn:active { opacity: 0.7; }
+
+  /* Install banner */
+  .install-banner {
+    background: var(--purple-bg); color: var(--purple-text);
+    font-size: 12px; padding: 8px 16px;
+    border-bottom: 0.5px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0;
+  }
+  .install-banner button { background: none; border: none; color: var(--purple-text); font-size: 16px; cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div id="install-banner" class="install-banner" style="display:none">
+    <span>📲 Tap <strong>Share → Add to Home Screen</strong> to install</span>
+    <button onclick="document.getElementById('install-banner').style.display='none'">✕</button>
+  </div>
+
+  <div class="header">
+    <div class="header-title">📅 Task Calendar</div>
+    <div class="week-nav">
+      <button class="nav-btn" onclick="changeWeek(-1)">‹</button>
+      <div class="week-label" id="week-label"></div>
+      <button class="nav-btn" onclick="changeWeek(1)">›</button>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="leg"><div class="leg-dot" style="background:var(--bg)"></div>Empty</div>
+    <div class="leg"><div class="leg-dot" style="background:var(--blue-bg);border-color:var(--blue);color:var(--blue)">⏱</div>In progress</div>
+    <div class="leg"><div class="leg-dot" style="background:var(--green-bg);border-color:var(--green);color:var(--green)">✓</div>Done</div>
+    <div class="leg"><div class="leg-dot" style="background:var(--red-bg);border-color:var(--red);color:var(--red)">✕</div>Blocked</div>
+    <div class="leg" style="margin-left:auto;color:var(--text3);font-size:10px">Tap name to edit</div>
+  </div>
+
+  <div class="table-area">
+    <table id="cal-table"></table>
+  </div>
+</div>
+
+<script>
+const DAYS_SHORT = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const STORE_KEY = 'taskcal_v1';
+
+let weekOffset = 0;
+let editingTaskId = null;
+
+function load() {
+  try {
+    const saved = localStorage.getItem(STORE_KEY);
+    if (saved) return JSON.parse(saved);
+  } catch(e) {}
+  return {
+    tasks: [
+      { id: 1, name: 'Research' },
+      { id: 2, name: 'Design' },
+      { id: 3, name: 'Development' },
+      { id: 4, name: 'Testing' },
+      { id: 5, name: 'Review' },
+    ],
+    cells: {},
+    nextId: 6
+  };
+}
+
+function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch(e) {} }
+
+let state = load();
+
+function getWeekDates(offset) {
+  const today = new Date();
+  const dow = today.getDay();
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - dow + 1 + offset * 7);
+  return Array.from({length: 7}, (_, i) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    return d;
+  });
+}
+
+function dateKey(d) { return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`; }
+
+function cycleStatus(taskId, dk) {
+  const k = `${taskId}_${dk}`;
+  const order = ['empty','inprog','done','blocked'];
+  const cur = state.cells[k] || 'empty';
+  const next = order[(order.indexOf(cur) + 1) % order.length];
+  if (next === 'empty') delete state.cells[k];
+  else state.cells[k] = next;
+  save();
+  render();
+}
+
+function statusIcon(s) {
+  if (s === 'done') return '✓';
+  if (s === 'inprog') return '⏱';
+  if (s === 'blocked') return '✕';
+  return '';
+}
+
+function deleteTask(id) {
+  state.tasks = state.tasks.filter(t => t.id !== id);
+  save(); render();
+}
+
+function startEdit(id) {
+  editingTaskId = id;
+  render();
+  setTimeout(() => {
+    const inp = document.getElementById(`task-input-${id}`);
+    if (inp) { inp.focus(); inp.select(); }
+  }, 50);
+}
+
+function finishEdit(id) {
+  const inp = document.getElementById(`task-input-${id}`);
+  if (inp) {
+    const t = state.tasks.find(t => t.id === id);
+    if (t) { t.name = inp.value.trim() || t.name; }
+  }
+  editingTaskId = null;
+  save(); render();
+}
+
+function addTask() {
+  const inp = document.getElementById('add-input');
+  const name = inp.value.trim();
+  if (!name) return;
+  state.tasks.push({ id: state.nextId++, name });
+  inp.value = '';
+  save(); render();
+}
+
+function changeWeek(delta) { weekOffset += delta; render(); }
+
+function render() {
+  const dates = getWeekDates(weekOffset);
+  const today = new Date();
+  const todayDk = dateKey(today);
+
+  // Week label
+  const first = dates[0], last = dates[6];
+  document.getElementById('week-label').textContent =
+    `${first.getDate()} ${MONTHS[first.getMonth()]} – ${last.getDate()} ${MONTHS[last.getMonth()]}`;
+
+  let html = '<thead><tr>';
+  html += `<th class="task-hd">Task</th>`;
+  dates.forEach(d => {
+    const isT = dateKey(d) === todayDk;
+    html += `<th class="${isT ? 'today-hd' : ''}" style="min-width:46px">${DAYS_SHORT[d.getDay()]}<br><span style="font-size:10px;font-weight:400;color:${isT ? 'var(--blue)' : 'var(--text3)'}">${d.getDate()}</span></th>`;
+  });
+  html += '</tr></thead><tbody>';
+
+  state.tasks.forEach(task => {
+    html += '<tr>';
+    if (editingTaskId === task.id) {
+      html += `<td class="task-cell"><div class="task-cell-inner"><input id="task-input-${task.id}" class="task-name-input" value="${task.name.replace(/"/g,'&quot;')}" onblur="finishEdit(${task.id})" onkeydown="if(event.key==='Enter')finishEdit(${task.id})" /></div></td>`;
+    } else {
+      html += `<td class="task-cell"><div class="task-cell-inner"><span class="task-name-text" onclick="startEdit(${task.id})" title="Tap to edit">${task.name}</span><button class="del-btn" onclick="deleteTask(${task.id})" aria-label="Delete">✕</button></div></td>`;
+    }
+    dates.forEach(d => {
+      const dk = dateKey(d);
+      const isT = dk === todayDk;
+      const s = state.cells[`${task.id}_${dk}`] || 'empty';
+      html += `<td class="day-cell${isT ? ' today-cell' : ''}"><button class="status-btn ${s}" onclick="cycleStatus(${task.id},'${dk}')" aria-label="${task.name} ${DAYS_SHORT[d.getDay()]}: ${s}">${statusIcon(s)}</button></td>`;
+    });
+    html += '</tr>';
+  });
+
+  // Add task row
+  html += `<tr class="add-row"><td colspan="${1 + dates.length}"><div class="add-form"><input id="add-input" class="add-input" placeholder="Add a task…" onkeydown="if(event.key==='Enter')addTask()" /><button class="add-btn" onclick="addTask()">+ Add</button></div></td></tr>`;
+  html += '</tbody>';
+  document.getElementById('cal-table').innerHTML = html;
+}
+
+// Show install banner on iOS if not in standalone
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+const isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+if (isIOS && !isStandalone) {
+  document.getElementById('install-banner').style.display = 'flex';
+}
+
+// Service worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(() => {});
+}
+
+render();
+</script>
+</body>
+</html>
