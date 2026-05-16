@@ -1,5 +1,5 @@
-const CACHE = 'task-cal-v2';
-const ASSETS = ['./index.html', './manifest.json'];
+const CACHE = 'task-cal-v3';
+const ASSETS = ['./index.html', './manifest.json', './ISKCON_logo.svg.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));

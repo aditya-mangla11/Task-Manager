@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Tasks">
-<meta name="theme-color" content="#f7faf7">
+<meta name="theme-color" content="#f5f8f3">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <title>Task Calendar</title>
@@ -14,22 +14,24 @@
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --bg: #f7faf7;
-    --bg2: #edf4ef;
-    --bg3: #dfe8e3;
+    --bg: #f5f8f3;
+    --bg2: #e9f0e6;
+    --bg3: #d8e4d6;
     --surface: #ffffff;
-    --text: #202821;
-    --text2: #526154;
-    --text3: #7a887d;
-    --border: rgba(54, 83, 62, 0.16);
-    --border2: rgba(54, 83, 62, 0.28);
-    --accent: #557a63;
-    --accent-bg: #e4f0e8;
-    --accent-text: #2f563c;
-    --green: #3e7d4f;
-    --green-bg: #e1f0e4;
-    --blue: #477891;
-    --blue-bg: #e3eef2;
+    --text: #19231b;
+    --text2: #425544;
+    --text3: #66746a;
+    --border: rgba(48, 78, 54, 0.26);
+    --border2: rgba(48, 78, 54, 0.42);
+    --accent: #496f50;
+    --accent-bg: #d8eadc;
+    --accent-text: #254b2e;
+    --green: #2f7442;
+    --green-bg: #d8ecd7;
+    --blue: #2d6f91;
+    --blue-bg: #d9eaf1;
+    --today-bg: #cfe5ee;
+    --today-border: rgba(45, 111, 145, 0.28);
     --radius: 10px;
     --safe-top: env(safe-area-inset-top, 0px);
     --safe-bot: env(safe-area-inset-bottom, 0px);
@@ -58,16 +60,32 @@
     align-items: center;
     justify-content: space-between;
     padding: 14px 16px 10px;
-    border-bottom: 0.5px solid var(--border);
+    border-bottom: 1px solid var(--border);
     background: var(--surface);
     flex-shrink: 0;
   }
-  .header-title { font-size: 20px; font-weight: 700; color: var(--text); }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+  .brand-logo {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    object-fit: contain;
+    background: #fffefa;
+    border: 1px solid var(--border2);
+    padding: 3px;
+    flex-shrink: 0;
+  }
+  .header-title { font-size: 20px; font-weight: 700; color: var(--text); white-space: nowrap; }
   .week-nav { display: flex; align-items: center; gap: 6px; }
   .week-label { font-size: 13px; color: var(--text2); min-width: 90px; text-align: center; }
   .nav-btn {
     width: 30px; height: 30px; border-radius: 8px;
-    border: 0.5px solid var(--border2); background: var(--surface);
+    border: 1px solid var(--border2); background: var(--surface);
     color: var(--text); font-size: 16px; cursor: pointer;
     display: flex; align-items: center; justify-content: center;
   }
@@ -76,12 +94,12 @@
   /* Legend */
   .legend {
     display: flex; gap: 10px; padding: 8px 16px;
-    border-bottom: 0.5px solid var(--border);
+    border-bottom: 1px solid var(--border);
     background: var(--surface);
     flex-shrink: 0; overflow-x: auto;
   }
   .leg { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text2); white-space: nowrap; }
-  .leg-dot { width: 14px; height: 14px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 9px; border: 0.5px solid var(--border); }
+  .leg-dot { width: 14px; height: 14px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 9px; border: 1px solid var(--border2); }
 
   /* Scrollable table area */
   .table-area { flex: 1; overflow: auto; -webkit-overflow-scrolling: touch; }
@@ -94,7 +112,8 @@
     background: var(--bg2);
     font-size: 11px; font-weight: 700; color: var(--text2);
     padding: 8px 4px; text-align: center;
-    border-bottom: 0.5px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    border-right: 1px solid var(--border);
     white-space: nowrap;
   }
   thead th.task-hd { text-align: left; padding-left: 12px; min-width: 110px; position: sticky; left: 0; z-index: 20; }
@@ -103,7 +122,7 @@
   tbody td.task-cell {
     position: sticky; left: 0; z-index: 5;
     background: var(--surface);
-    border-right: 0.5px solid var(--border);
+    border-right: 1px solid var(--border);
     padding: 0;
     min-width: 110px;
   }
@@ -123,43 +142,54 @@
   /* Day cells */
   tbody td.day-cell {
     padding: 6px 4px; text-align: center;
-    border-bottom: 0.5px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    border-right: 1px solid var(--border);
   }
   tbody tr:last-child td { border-bottom: none; }
 
-  td.today-cell { background: var(--blue-bg) !important; }
-  thead th.today-hd { color: var(--blue) !important; }
+  td.today-cell {
+    background: var(--today-bg) !important;
+    box-shadow: inset 1px 0 0 var(--today-border), inset -1px 0 0 var(--today-border);
+  }
+  thead th.today-hd {
+    background: var(--today-bg) !important;
+    color: var(--blue) !important;
+    box-shadow: inset 1px 0 0 var(--today-border), inset -1px 0 0 var(--today-border);
+  }
 
   .status-btn {
     width: 34px; height: 34px; border-radius: 8px;
-    border: 0.5px solid var(--border2);
+    border: 1.5px solid var(--border2);
     background: var(--surface);
-    color: var(--text3);
+    color: var(--text2);
     font-size: 16px; cursor: pointer;
     display: inline-flex; align-items: center; justify-content: center;
-    transition: transform 0.08s;
+    box-shadow: 0 1px 2px rgba(31, 47, 35, 0.12);
+    transition: transform 0.08s, border-color 0.08s, background 0.08s;
   }
   .status-btn:active { transform: scale(0.9); }
-  .status-btn.done { background: var(--green-bg); border-color: var(--green); color: var(--green); }
-  .status-btn.inprog { background: var(--blue-bg); border-color: var(--blue); color: var(--blue); }
+  .status-btn.empty { background: #fffefa; }
+  .today-cell .status-btn.empty { border-color: rgba(45, 89, 110, 0.52); }
+  .status-btn.done { background: var(--green-bg); border-color: var(--green); color: var(--green); font-weight: 700; }
+  .status-btn.inprog { background: var(--blue-bg); border-color: var(--blue); color: var(--blue); font-weight: 700; }
 
   /* Add task row */
   .add-row td {
     padding: 10px 12px;
-    border-top: 0.5px solid var(--border);
+    border-top: 1px solid var(--border);
     position: sticky; left: 0;
   }
   .add-form { display: flex; gap: 8px; align-items: center; }
   .add-input {
     flex: 1; height: 36px; padding: 0 10px;
-    border: 0.5px solid var(--border2); border-radius: 8px;
+    border: 1px solid var(--border2); border-radius: 8px;
     background: var(--surface); color: var(--text);
     font-size: 14px; outline: none;
   }
   .add-input:focus { border-color: var(--accent); }
   .add-btn {
     height: 36px; padding: 0 14px; border-radius: 8px;
-    border: 0.5px solid var(--accent); background: var(--accent-bg);
+    border: 1px solid var(--accent); background: var(--accent-bg);
     color: var(--accent-text); font-size: 14px; font-weight: 700; cursor: pointer;
     white-space: nowrap;
   }
@@ -169,7 +199,7 @@
   .install-banner {
     background: var(--accent-bg); color: var(--accent-text);
     font-size: 12px; padding: 8px 16px;
-    border-bottom: 0.5px solid var(--border);
+    border-bottom: 1px solid var(--border);
     display: flex; align-items: center; justify-content: space-between;
     flex-shrink: 0;
   }
@@ -184,7 +214,10 @@
   </div>
 
   <div class="header">
-    <div class="header-title">📅 Task Calendar</div>
+    <div class="brand">
+      <img class="brand-logo" src="ISKCON_logo.svg.png" alt="ISKCON logo">
+      <div class="header-title">Task Calendar</div>
+    </div>
     <div class="week-nav">
       <button class="nav-btn" onclick="changeWeek(-1)">‹</button>
       <div class="week-label" id="week-label"></div>
@@ -326,7 +359,7 @@ function render() {
   html += `<th class="task-hd">Task</th>`;
   dates.forEach(d => {
     const isT = dateKey(d) === todayDk;
-    html += `<th class="${isT ? 'today-hd' : ''}" style="min-width:46px">${DAYS_SHORT[d.getDay()]}<br><span style="font-size:10px;font-weight:400;color:${isT ? 'var(--blue)' : 'var(--text3)'}">${d.getDate()}</span></th>`;
+    html += `<th class="${isT ? 'today-hd' : ''}" style="min-width:46px">${DAYS_SHORT[d.getDay()]}<br><span style="font-size:10px;font-weight:700;color:${isT ? 'var(--blue)' : 'var(--text3)'}">${d.getDate()}</span></th>`;
   });
   html += '</tr></thead><tbody>';
 
