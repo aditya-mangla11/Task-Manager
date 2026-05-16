@@ -62,6 +62,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 10px;
     padding: 14px 16px 10px;
     border-bottom: 1px solid var(--border);
     background: var(--surface);
@@ -71,7 +72,9 @@
     display: flex;
     align-items: center;
     gap: 10px;
+    flex: 1 1 auto;
     min-width: 0;
+    overflow: hidden;
   }
   .brand-logo {
     width: 38px;
@@ -83,9 +86,9 @@
     padding: 3px;
     flex-shrink: 0;
   }
-  .header-title { font-size: 20px; font-weight: 700; color: var(--text); white-space: nowrap; }
-  .week-nav { display: flex; align-items: center; gap: 6px; }
-  .week-label { font-size: 13px; color: var(--text2); min-width: 90px; text-align: center; }
+  .header-title { font-size: clamp(16px, 4.4vw, 20px); font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .week-nav { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
+  .week-label { font-size: 13px; color: var(--text2); width: 90px; text-align: center; }
   .nav-btn {
     width: 30px; height: 30px; border-radius: 8px;
     border: 1px solid var(--border2); background: var(--surface);
@@ -132,14 +135,14 @@
   thead th.task-hd {
     text-align: left;
     padding-left: 12px;
-    width: var(--task-col);
-    min-width: var(--task-col);
-    max-width: var(--task-col);
+    width: var(--current-task-col, var(--task-col));
+    min-width: var(--current-task-col, var(--task-col));
+    max-width: var(--current-task-col, var(--task-col));
     position: sticky;
     left: 0;
     z-index: 20;
     overflow: hidden;
-    transition: width 0.16s ease, min-width 0.16s ease, max-width 0.16s ease, padding 0.16s ease;
+    transition: padding 0.16s ease;
   }
 
   /* Sticky first column */
@@ -148,11 +151,10 @@
     background: var(--surface);
     border-right: 1px solid var(--border);
     padding: 0;
-    width: var(--task-col);
-    min-width: var(--task-col);
-    max-width: var(--task-col);
+    width: var(--current-task-col, var(--task-col));
+    min-width: var(--current-task-col, var(--task-col));
+    max-width: var(--current-task-col, var(--task-col));
     overflow: hidden;
-    transition: width 0.16s ease, min-width 0.16s ease, max-width 0.16s ease;
   }
   .task-cell-inner {
     display: flex; align-items: center; gap: 4px;
@@ -179,12 +181,6 @@
   }
   .del-btn { background: none; border: none; color: var(--text3); font-size: 14px; cursor: pointer; padding: 2px; flex-shrink: 0; }
 
-  .table-area.compact-tasks thead th.task-hd,
-  .table-area.compact-tasks tbody td.task-cell {
-    width: var(--task-col-compact);
-    min-width: var(--task-col-compact);
-    max-width: var(--task-col-compact);
-  }
   .table-area.compact-tasks thead th.task-hd {
     padding-left: 0;
     text-align: center;
@@ -267,6 +263,27 @@
     flex-shrink: 0;
   }
   .install-banner button { background: none; border: none; color: var(--accent-text); font-size: 16px; cursor: pointer; }
+
+  @media (max-width: 430px) {
+    .header {
+      gap: 8px;
+      padding: 12px 10px 9px;
+    }
+    .brand {
+      gap: 8px;
+    }
+    .brand-logo {
+      width: 30px;
+      height: 30px;
+      padding: 2px;
+    }
+    .week-nav {
+      gap: 4px;
+    }
+    .week-label {
+      display: none;
+    }
+  }
 </style>
 </head>
 <body>
@@ -452,10 +469,17 @@ function render() {
 function updateTaskColumnMode() {
   const area = document.querySelector('.table-area');
   if (!area) return;
-  area.classList.toggle('compact-tasks', area.scrollLeft > 24 && editingTaskId === null);
+  const fullWidth = Math.min(window.innerWidth * 0.76, 240);
+  const compactWidth = 54;
+  const progress = editingTaskId === null ? Math.min(area.scrollLeft / 110, 1) : 0;
+  const eased = 1 - Math.pow(1 - progress, 3);
+  const currentWidth = fullWidth - (fullWidth - compactWidth) * eased;
+  area.style.setProperty('--current-task-col', `${currentWidth.toFixed(1)}px`);
+  area.classList.toggle('compact-tasks', progress > 0.82);
 }
 
 document.querySelector('.table-area').addEventListener('scroll', updateTaskColumnMode, { passive: true });
+window.addEventListener('resize', updateTaskColumnMode);
 
 // Show install banner on iOS if not in standalone
 const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
