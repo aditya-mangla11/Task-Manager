@@ -32,6 +32,9 @@
     --blue-bg: #d9eaf1;
     --today-bg: #cfe5ee;
     --today-border: rgba(45, 111, 145, 0.28);
+    --task-col: 118px;
+    --task-col-compact: 54px;
+    --day-col: 52px;
     --radius: 10px;
     --safe-top: env(safe-area-inset-top, 0px);
     --safe-bot: env(safe-area-inset-bottom, 0px);
@@ -104,7 +107,11 @@
   /* Scrollable table area */
   .table-area { flex: 1; overflow: auto; -webkit-overflow-scrolling: touch; }
 
-  table { border-collapse: collapse; width: 100%; }
+  table {
+    border-collapse: collapse;
+    min-width: 100%;
+    width: max-content;
+  }
 
   /* Sticky header row */
   thead th {
@@ -116,7 +123,24 @@
     border-right: 1px solid var(--border);
     white-space: nowrap;
   }
-  thead th.task-hd { text-align: left; padding-left: 12px; min-width: 110px; position: sticky; left: 0; z-index: 20; }
+  thead th:not(.task-hd),
+  tbody td.day-cell {
+    width: var(--day-col);
+    min-width: var(--day-col);
+    max-width: var(--day-col);
+  }
+  thead th.task-hd {
+    text-align: left;
+    padding-left: 12px;
+    width: var(--task-col);
+    min-width: var(--task-col);
+    max-width: var(--task-col);
+    position: sticky;
+    left: 0;
+    z-index: 20;
+    overflow: hidden;
+    transition: width 0.16s ease, min-width 0.16s ease, max-width 0.16s ease, padding 0.16s ease;
+  }
 
   /* Sticky first column */
   tbody td.task-cell {
@@ -124,13 +148,29 @@
     background: var(--surface);
     border-right: 1px solid var(--border);
     padding: 0;
-    min-width: 110px;
+    width: var(--task-col);
+    min-width: var(--task-col);
+    max-width: var(--task-col);
+    overflow: hidden;
+    transition: width 0.16s ease, min-width 0.16s ease, max-width 0.16s ease;
   }
   .task-cell-inner {
     display: flex; align-items: center; gap: 4px;
     padding: 8px 6px 8px 12px;
+    min-width: 0;
+    width: 100%;
+    transition: padding 0.16s ease;
   }
-  .task-name-text { font-size: 13px; font-weight: 500; flex: 1; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .task-name-text {
+    font-size: 13px;
+    font-weight: 500;
+    flex: 1;
+    min-width: 0;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
   .task-name-input {
     font-size: 13px; font-weight: 500; flex: 1;
     background: transparent; border: none; color: var(--text);
@@ -138,6 +178,29 @@
     border-bottom: 1px solid var(--accent);
   }
   .del-btn { background: none; border: none; color: var(--text3); font-size: 14px; cursor: pointer; padding: 2px; flex-shrink: 0; }
+
+  .table-area.compact-tasks thead th.task-hd,
+  .table-area.compact-tasks tbody td.task-cell {
+    width: var(--task-col-compact);
+    min-width: var(--task-col-compact);
+    max-width: var(--task-col-compact);
+  }
+  .table-area.compact-tasks thead th.task-hd {
+    padding-left: 0;
+    text-align: center;
+  }
+  .table-area.compact-tasks .task-cell-inner {
+    justify-content: center;
+    padding: 8px 5px;
+  }
+  .table-area.compact-tasks .task-name-text {
+    flex: 0 1 auto;
+    width: 42px;
+    text-align: center;
+  }
+  .table-area.compact-tasks .del-btn {
+    display: none;
+  }
 
   /* Day cells */
   tbody td.day-cell {
@@ -359,7 +422,7 @@ function render() {
   html += `<th class="task-hd">Task</th>`;
   dates.forEach(d => {
     const isT = dateKey(d) === todayDk;
-    html += `<th class="${isT ? 'today-hd' : ''}" style="min-width:46px">${DAYS_SHORT[d.getDay()]}<br><span style="font-size:10px;font-weight:700;color:${isT ? 'var(--blue)' : 'var(--text3)'}">${d.getDate()}</span></th>`;
+    html += `<th class="${isT ? 'today-hd' : ''}">${DAYS_SHORT[d.getDay()]}<br><span style="font-size:10px;font-weight:700;color:${isT ? 'var(--blue)' : 'var(--text3)'}">${d.getDate()}</span></th>`;
   });
   html += '</tr></thead><tbody>';
 
@@ -383,7 +446,16 @@ function render() {
   html += `<tr class="add-row"><td colspan="${1 + dates.length}"><div class="add-form"><input id="add-input" class="add-input" placeholder="Add a task…" onkeydown="if(event.key==='Enter')addTask()" /><button class="add-btn" onclick="addTask()">+ Add</button></div></td></tr>`;
   html += '</tbody>';
   document.getElementById('cal-table').innerHTML = html;
+  requestAnimationFrame(updateTaskColumnMode);
 }
+
+function updateTaskColumnMode() {
+  const area = document.querySelector('.table-area');
+  if (!area) return;
+  area.classList.toggle('compact-tasks', area.scrollLeft > 24 && editingTaskId === null);
+}
+
+document.querySelector('.table-area').addEventListener('scroll', updateTaskColumnMode, { passive: true });
 
 // Show install banner on iOS if not in standalone
 const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
