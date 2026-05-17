@@ -1,4 +1,4 @@
-const CACHE = 'task-cal-v6';
+const CACHE = 'task-cal-v8';
 const ASSETS = ['./index.html', './manifest.json', './ISKCON_logo.svg.png'];
 
 self.addEventListener('install', e => {

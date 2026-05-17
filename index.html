@@ -107,6 +107,31 @@
   .leg { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text2); white-space: nowrap; }
   .leg-dot { width: 14px; height: 14px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 9px; border: 1px solid var(--border2); }
 
+  /* Date context */
+  .date-context {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 16px;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .period-title {
+    color: var(--text);
+    font-size: 17px;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+  .period-range {
+    color: var(--text2);
+    font-size: 12px;
+    font-weight: 700;
+    text-align: right;
+    white-space: nowrap;
+  }
+
   /* Scrollable table area */
   .table-area { flex: 1; overflow: auto; -webkit-overflow-scrolling: touch; }
 
@@ -121,10 +146,38 @@
     position: sticky; top: 0; z-index: 10;
     background: var(--bg2);
     font-size: 11px; font-weight: 700; color: var(--text2);
-    padding: 8px 4px; text-align: center;
+    padding: 7px 4px; text-align: center;
     border-bottom: 1px solid var(--border);
     border-right: 1px solid var(--border);
     white-space: nowrap;
+  }
+  .day-head {
+    display: grid;
+    gap: 1px;
+    justify-items: center;
+    line-height: 1.05;
+  }
+  .day-weekday {
+    color: var(--text2);
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+  .day-number {
+    color: var(--text);
+    font-size: 17px;
+    font-weight: 800;
+  }
+  .day-month {
+    color: var(--text3);
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+  .today-hd .day-weekday,
+  .today-hd .day-number,
+  .today-hd .day-month {
+    color: var(--blue);
   }
   thead th:not(.task-hd),
   tbody td.day-cell {
@@ -230,7 +283,6 @@
   .status-btn.empty { background: #fffefa; }
   .today-cell .status-btn.empty { border-color: rgba(45, 89, 110, 0.52); }
   .status-btn.done { background: var(--green-bg); border-color: var(--green); color: var(--green); font-weight: 700; }
-  .status-btn.inprog { background: var(--blue-bg); border-color: var(--blue); color: var(--blue); font-weight: 700; }
 
   /* Add task row */
   .add-row td {
@@ -283,6 +335,26 @@
     .week-label {
       display: none;
     }
+    .date-context {
+      padding: 9px 10px;
+    }
+    .period-title {
+      font-size: 16px;
+    }
+    .period-range {
+      font-size: 11px;
+    }
+  }
+
+  @media (max-width: 360px) {
+    .date-context {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .period-range {
+      text-align: left;
+    }
   }
 </style>
 </head>
@@ -307,9 +379,13 @@
 
   <div class="legend">
     <div class="leg"><div class="leg-dot" style="background:var(--bg)"></div>Empty</div>
-    <div class="leg"><div class="leg-dot" style="background:var(--blue-bg);border-color:var(--blue);color:var(--blue)">⏱</div>In progress</div>
     <div class="leg"><div class="leg-dot" style="background:var(--green-bg);border-color:var(--green);color:var(--green)">✓</div>Done</div>
     <div class="leg" style="margin-left:auto;color:var(--text3);font-size:10px">Tap name to edit</div>
+  </div>
+
+  <div class="date-context" aria-live="polite">
+    <div class="period-title" id="period-title"></div>
+    <div class="period-range" id="period-range"></div>
   </div>
 
   <div class="table-area">
@@ -320,6 +396,7 @@
 <script>
 const DAYS_SHORT = ['Su','Mo','Tu','We','Th','Fr','Sa'];
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const MONTHS_FULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const STORE_KEY = 'taskcal_v1';
 
 let weekOffset = 0;
@@ -353,7 +430,7 @@ function normalizeState(data) {
   if (!data || typeof data !== 'object') return data;
   if (data.cells && typeof data.cells === 'object') {
     Object.keys(data.cells).forEach(k => {
-      if (data.cells[k] === 'blocked') delete data.cells[k];
+      if (data.cells[k] === 'blocked' || data.cells[k] === 'inprog') delete data.cells[k];
     });
   }
   return data;
@@ -373,9 +450,29 @@ function getWeekDates(offset) {
 
 function dateKey(d) { return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`; }
 
+function formatWeekTitle(first, last) {
+  if (first.getFullYear() !== last.getFullYear()) {
+    return `${MONTHS[first.getMonth()]} ${first.getFullYear()} - ${MONTHS[last.getMonth()]} ${last.getFullYear()}`;
+  }
+  if (first.getMonth() !== last.getMonth()) {
+    return `${MONTHS[first.getMonth()]} - ${MONTHS[last.getMonth()]} ${first.getFullYear()}`;
+  }
+  return `${MONTHS_FULL[first.getMonth()]} ${first.getFullYear()}`;
+}
+
+function formatWeekRange(first, last) {
+  if (first.getFullYear() !== last.getFullYear()) {
+    return `${MONTHS[first.getMonth()]} ${first.getDate()}, ${first.getFullYear()} - ${MONTHS[last.getMonth()]} ${last.getDate()}, ${last.getFullYear()}`;
+  }
+  if (first.getMonth() !== last.getMonth()) {
+    return `${MONTHS[first.getMonth()]} ${first.getDate()} - ${MONTHS[last.getMonth()]} ${last.getDate()}, ${first.getFullYear()}`;
+  }
+  return `${MONTHS[first.getMonth()]} ${first.getDate()}-${last.getDate()}, ${first.getFullYear()}`;
+}
+
 function cycleStatus(taskId, dk) {
   const k = `${taskId}_${dk}`;
-  const order = ['empty','inprog','done'];
+  const order = ['empty','done'];
   const cur = state.cells[k] || 'empty';
   const next = order[(order.indexOf(cur) + 1) % order.length];
   if (next === 'empty') delete state.cells[k];
@@ -386,7 +483,6 @@ function cycleStatus(taskId, dk) {
 
 function statusIcon(s) {
   if (s === 'done') return '✓';
-  if (s === 'inprog') return '⏱';
   return '';
 }
 
@@ -430,16 +526,18 @@ function render() {
   const today = new Date();
   const todayDk = dateKey(today);
 
-  // Week label
   const first = dates[0], last = dates[6];
-  document.getElementById('week-label').textContent =
-    `${first.getDate()} ${MONTHS[first.getMonth()]} – ${last.getDate()} ${MONTHS[last.getMonth()]}`;
+  const title = formatWeekTitle(first, last);
+  const range = formatWeekRange(first, last);
+  document.getElementById('week-label').textContent = title;
+  document.getElementById('period-title').textContent = title;
+  document.getElementById('period-range').textContent = range;
 
   let html = '<thead><tr>';
   html += `<th class="task-hd">Task</th>`;
   dates.forEach(d => {
     const isT = dateKey(d) === todayDk;
-    html += `<th class="${isT ? 'today-hd' : ''}">${DAYS_SHORT[d.getDay()]}<br><span style="font-size:10px;font-weight:700;color:${isT ? 'var(--blue)' : 'var(--text3)'}">${d.getDate()}</span></th>`;
+    html += `<th class="${isT ? 'today-hd' : ''}"><div class="day-head"><span class="day-weekday">${DAYS_SHORT[d.getDay()]}</span><span class="day-number">${d.getDate()}</span><span class="day-month">${MONTHS[d.getMonth()]}</span></div></th>`;
   });
   html += '</tr></thead><tbody>';
 
